@@ -1,6 +1,8 @@
 # Halftone Generator (Web)
 
-使用瀏覽器本地運行的半色調轉換工具。提供 Floyd-Steinberg Dithering 與簡單閾值模式，並可調整對比度、點尺寸與閾值。支持多圖批次處理及 ZIP 打包下載。
+> 使用瀏覽器本地運行的半色調轉換工具。提供 Floyd-Steinberg Dithering 與簡單閾值模式，並可調整對比度、點尺寸與閾值。支持多圖批次處理及 ZIP 打包下載。
+🔗網上使用(完全本地Browser運行)：[https://lokchonmou.github.io/halftone_generator/](https://lokchonmou.github.io/halftone_generator/)
+
 
 ## ✨ 特點
 - 100% 本地運行：不會上傳任何圖片或資料到伺服器。
