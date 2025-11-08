@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Halftone Generator</title>
+  <meta name="description" content="半色調圖像轉換工具 - 全部在瀏覽器本地運行，不上傳任何資料" />
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <div id="app" class="container">
+    <header class="header">
+      <h1>🟣 Halftone Generator</h1>
+      <p>使用 Floyd-Steinberg 與自訂點尺寸，全部在瀏覽器記憶體處理</p>
+      <p class="version-info">v0.1.0 (離線，本地計算，不傳輸資料)</p>
+    </header>
+
+    <main class="main">
+      <section class="upload-section">
+        <h2>步驟 1: 上傳檔案</h2>
+        <div class="upload-area" id="uploadArea">
+          <div class="upload-content">
+            <p>📁 拖拽 圖片 到這裡</p>
+            <p class="small">支援格式: JPG / PNG / GIF / WEBP / BMP / TIFF</p>
+            <p class="small">或點擊選擇檔案</p>
+            <p class="size-limit">最大檔案大小: 50 MB</p>
+          </div>
+          <input type="file" id="fileInput" multiple accept=".jpg,.jpeg,.png,.gif,.webp,.bmp,.tiff,.tif" />
+        </div>
+        <div id="fileList" class="file-preview"></div>
+        <div id="imagePreviewSection" class="image-preview-section" style="display:none;">
+          <h3>📸 圖片預覽</h3>
+          <div id="imagePreviewGrid" class="image-preview-grid"></div>
+        </div>
+      </section>
+
+      <section class="params-section">
+        <h2>步驟 2: 調整參數</h2>
+        
+        <h3>🖨️ 印刷設定</h3>
+        <div class="params-grid">
+          <div class="param-group">
+            <label for="outputWidth">
+              輸出寬度 (cm)
+              <span class="tooltip-icon" title="測驗卷上圖片的寬度。6cm 已很大，2-4cm 適合小圖。">?</span>
+            </label>
+            <input id="outputWidth" type="range" min="2" max="6" value="4" step="0.5" />
+            <span id="outputWidthValue" class="hint">4 cm</span>
+          </div>
+          
+          <div class="param-group">
+            <label for="printDPI">
+              影印機解析度 (DPI)
+              <span class="tooltip-icon" title="DPI 越低，半色調點越明顯！72/150 適合影印半色調效果；300/600 細節多但點密集。">?</span>
+            </label>
+            <select id="printDPI">
+              <option value="72">72 DPI (粗點)</option>
+              <option value="150" selected>150 DPI (標準半色調)</option>
+              <option value="300">300 DPI (細點)</option>
+              <option value="600">600 DPI (極細)</option>
+            </select>
+          </div>
+          
+          <div class="param-group">
+            <label for="colorMode">
+              色彩模式
+              <span class="tooltip-icon" title="黑白: 只有黑白兩色，檔案小，適合純文字或簡單圖；灰階: 保留灰度層次；彩色: 保留原色彩（若影印機支援彩印）。">?</span>
+            </label>
+            <select id="colorMode">
+              <option value="bw" selected>黑白半色調</option>
+              <option value="gray">灰階 (不 dither)</option>
+              <option value="color">保留彩色</option>
+            </select>
+          </div>
+        </div>
+        
+        <div id="outputInfo" class="output-info" style="margin-top:16px; padding:12px; background:var(--bg-tertiary); border-radius:4px; font-size:13px;">
+          <strong>📏 預估輸出：</strong>
+          <span id="outputInfoText">寬 4cm × 高 ? cm，約 236 × ? pixels @ 150 DPI</span>
+        </div>
+
+        <h3 style="margin-top:24px;">⚙️ 半色調參數</h3>
+        <div class="params-grid">
+          <div class="param-group">
+            <label for="contrast">
+              對比度
+              <span class="tooltip-icon" title="增強明暗對比。1.0 = 原圖；>1.0 增強對比（推薦 1.2-1.5）；<1.0 降低對比。對比度太高會失去細節。">?</span>
+            </label>
+            <input id="contrast" type="range" min="0.8" max="2.0" value="1.3" step="0.1" />
+            <span id="contrastValue">1.3</span>
+          </div>
+          
+          <div class="param-group">
+            <label for="threshold">
+              閾值
+              <span class="tooltip-icon" title="黑白分界點 (0-255)。128 = 中間；< 128 偏黑（適合淺色圖）；> 128 偏白（適合深色圖）。">?</span>
+            </label>
+            <input id="threshold" type="range" min="64" max="192" value="128" step="8" />
+            <span id="thresholdValue">128</span>
+          </div>
+          
+          <div class="param-group">
+            <label for="ditherMode">
+              半色調模式
+              <span class="tooltip-icon" title="Floyd-Steinberg: 誤差擴散，效果自然，適合相片；簡單閾值: 硬切黑白，適合文字或線條圖。">?</span>
+            </label>
+            <select id="ditherMode">
+              <option value="floyd" selected>Floyd-Steinberg (推薦)</option>
+              <option value="binary">簡單閾值</option>
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <section class="progress-section">
+        <h2>步驟 3: 轉換與下載</h2>
+        <div class="progress-container">
+          <div class="progress-bar"><div id="progressFill" class="progress-fill" style="width:0%"></div></div>
+          <p id="progressText" class="progress-text">準備就緒</p>
+        </div>
+        <button id="processBtn" class="btn btn-primary" disabled>開始轉換</button>
+        <button id="downloadSelectedBtn" class="btn btn-success" style="display:none;">下載選取</button>
+        <button id="downloadAllZipBtn" class="btn btn-secondary" style="display:none;">全部 ZIP</button>
+
+        <div id="outputPreviewSection" class="output-preview-section" style="display:none;">
+          <h3>半色調預覽</h3>
+          <p class="preview-info">點擊圖片可放大</p>
+          <div id="outputPreviewGrid" class="output-preview-grid"></div>
+        </div>
+
+        <div id="previewModal" class="preview-modal" style="display:none;">
+          <div class="modal-content">
+            <span id="modalClose" class="modal-close">&times;</span>
+            <img id="modalImage" alt="Preview" />
+            <p id="modalCaption" class="modal-caption"></p>
+          </div>
+        </div>
+      </section>
+
+      <section class="log-section">
+        <h2>處理日誌</h2>
+        <div id="logBox" class="log-box"></div>
+        <button id="clearLogBtn" class="btn btn-secondary">清除日誌</button>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>⚙️ 所有影像處理均在此瀏覽器本地記憶體與 CPU 執行，不會上傳任何資料。</p>
+      <p>© LOK CHON MOU 2025  | MIT License | v0.1.0</p>
+      <p class="credits">演算法參考 Floyd-Steinberg Dithering。</p>
+    </footer>
+  </div>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

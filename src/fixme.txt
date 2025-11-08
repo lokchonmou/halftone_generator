@@ -1,0 +1,1 @@
+TODO: implement optional morphological cleaning for forceWhite background; integrate PWA in next version.
